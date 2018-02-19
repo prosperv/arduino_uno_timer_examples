@@ -1,6 +1,10 @@
 /* Arduino 101: timer and interrupts
    1: Timer1 compare match interrupt example
    created by RobotFreak
+   modified by Prosper
+
+   When the timer (TCNT1) match the compare restister (OCR1A),
+   an interrupt will trigger and reset the timer.
 */
 
 #include <Arduino.h>
@@ -18,7 +22,7 @@ void setup()
   TCNT1  = 0;
 
   OCR1A = 31250;            // compare match register 16MHz/256/2Hz
-  TCCR1B |= (1 << WGM12);   // CTC mode
+  TCCR1B |= (1 << WGM12);   // CTC (Clear Timer on Compare) mode
   TCCR1B |= (1 << CS12);    // 256 prescaler
   TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
   interrupts();             // enable all interrupts
