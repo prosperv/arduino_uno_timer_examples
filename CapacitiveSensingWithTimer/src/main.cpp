@@ -12,11 +12,10 @@
   Connect a capacitive element to the recieve pin.
   Upload the sketch and open the serial port.
 
-
   How capacitive sensing work.
   When the send pin goes high, it takes time for the recieve pin to detect that
   change. That time is base on the resistance between the send and receieve pin
-  and the capacitance of the recieve pin. As the resistance or capacitance 
+  and the capacitance of the recieve pin. As the resistance or capacitance
   increases, the long it takes for the the recieve pin to detect that change.
   By touching the capacitive element, you are introducing more capacitance
   because your body acts like a capacitor. Thus there will be a time difference
@@ -52,7 +51,7 @@
     clk/256  |   1  |   1  |  0
     clk/1024 |   1  |   0  |  1
 */
-#define TIMER1_CS ((0<<CS12)|(1<<CS11)|(0<<CS10))
+#define TIMER1_CS ((0<<CS12)|(0<<CS11)|(1<<CS10))
 
 // The ICES1 controls if an event will be triggered on a rising edge (set 1) or
 // falling edge (clear 0).
@@ -65,10 +64,13 @@ volatile long isr_capturedCount = 0;
 // reading multiple times
 volatile bool readyToRead = false;
 
-// The input capture pin is tied to pin 8 so it cannot be used.
+// The input capture pin is tied to pin 8 and must not be changed.
 const int recievePin = 8;
 // This pin could just be any other pin
 const int sendPin = 3;
+
+const int ledPin = 13;
+const long threshold = 1200;
 
 
 inline void disableInputCapture()
@@ -80,24 +82,12 @@ inline void enableInputCapture()
   TIMSK1 |= (1<<ICIE1);
 }
 
-inline void resetPins()
-{
-  // Discharge capacitor
-  digitalWrite(sendPin, LOW);
-
-  pinMode(recievePin, OUTPUT);
-  digitalWrite(recievePin, LOW);
-  delay(1);
-  pinMode(recievePin, INPUT);
-  //Reset
-  ICR1 = 0;
-  digitalWrite(sendPin, HIGH);
-}
-
 void setup() {
   // Disable interrups until we're setup and ready.
   noInterrupts();
   Serial.begin(9600);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
 
   TCCR1A = TIMER1_WGM_10;
   prt("TCCR1A: "); prtln(TCCR1A, BIN);
@@ -119,8 +109,16 @@ void loop()
     prt(" ");
     prtln(isr_capturedCount);
     readyToRead = false;
+    if (isr_capturedCount > threshold)
+    {
+      digitalWrite(ledPin, HIGH);
+    }
+    else
+    {
+      digitalWrite(ledPin, LOW);
+    }
   }
-  delay(50);
+  delay(100);
 }
 
 // This ISR function is called whenever timer1 overflows occurs. This
@@ -131,6 +129,8 @@ ISR(TIMER1_OVF_vect)
   pinMode(recievePin, INPUT);
   digitalWrite(sendPin, HIGH);
   // prt("R");
+
+  // Renable input capture to get the next reading.
   enableInputCapture();
 }
 
@@ -141,6 +141,7 @@ ISR(TIMER1_CAPT_vect)
   // Disable he capture pin so we don't overwrite the first captured timestamp
   // before the counter resets
   disableInputCapture();
+
   //Read count
   isr_capturedCount = ICR1;
   // prt("C");
