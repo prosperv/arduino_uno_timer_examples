@@ -10,8 +10,11 @@ sooner or later.
 #include <Arduino.h>
 #define ledPin 13
 
+long timeout_count = 34286;
+
 void setup()
 {
+  Serial.begin(9600);
   pinMode(ledPin, OUTPUT);
 
   // initialize timer1
@@ -28,11 +31,16 @@ void setup()
 // supplied by attachInterrupt
 ISR(TIMER1_OVF_vect)
 {
-  TCNT1 = 34286;            // preload timer
+  TCNT1 = timeout_count;            // preload timer
   digitalWrite(ledPin, digitalRead(ledPin) ^ 1);
 }
 
 void loop()
 {
-  // your program here...
+  delay(1000);
+  if(Serial.available())
+  {
+    int input_ms = Serial.parseFloat();
+    timeout_count = 65535 - (65536 * input_ms / 1000);
+  }
 }

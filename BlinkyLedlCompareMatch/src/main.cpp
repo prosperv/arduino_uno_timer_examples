@@ -10,6 +10,8 @@
 #include <Arduino.h>
 #define ledPin 13
 
+long timeout_count = 31250;
+
 void setup()
 {
   Serial.begin(9600);
@@ -23,7 +25,7 @@ void setup()
 
   OCR1A = 31250;            // compare match register 16MHz/256/2Hz
   TCCR1B |= (1 << WGM12);   // CTC (Clear Timer on Compare) mode
-  TCCR1B |= (1 << CS12);    // 256 prescaler
+  TCCR1B |= (1 << CS12);    // 256 prescaler -> 62500Hz timer clock
   TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
   interrupts();             // enable all interrupts
 
@@ -40,5 +42,11 @@ ISR(TIMER1_COMPA_vect)          // timer compare interrupt service routine
 
 void loop()
 {
-  // your program here...
+  delay(1000);
+  if(Serial.available())
+  {
+    int input_ms = Serial.parseFloat();
+    timeout_count = (65535 * input_ms / 1000);
+    OCR1A = timeout_count;
+  }
 }
